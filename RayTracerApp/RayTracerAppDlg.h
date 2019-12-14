@@ -6,12 +6,27 @@
 #include "ImageDialog.h"
 #include "RayTracerRender.h"
 
+#include <thread>
+
+#include <windows.h>
+#include <gdiplus.h>
+#pragma comment (lib,"Gdiplus.lib")
+using namespace Gdiplus;
+#include <stdexcept>
+using std::runtime_error;
+
 // CRayTracerAppDlg dialog
 class CRayTracerAppDlg : public CDialogEx
 {
 // Construction
 public:
 	CRayTracerAppDlg(CWnd* pParent = nullptr);	// standard constructor
+	// Graphics
+	ImageDialog myImageWindow;
+	CRayTracer RayTracer;
+	
+	void CreateImgDialog();
+	void FillImgDialog();
 
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
@@ -20,10 +35,6 @@ public:
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
-
-// Graphics
-	ImageDialog myImageWindow;
-	CRayTracer RayTracer;
 
 // Implementation
 protected:

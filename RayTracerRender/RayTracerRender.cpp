@@ -1,19 +1,18 @@
 #include "RayTracerRender.h"
 #define L_INTENSITY 0.5f
-#define R_LENGTH 100000000.0f
+#define R_LENGTH 1000000.0f
 
 
 //Ctor Sets up a basic scene
 CRayTracer::CRayTracer(void)
 {
 	Scene.lights.push_back(CLight(Vec3(0, -1, 1), Vec3(100, 100, 100)));
-	//Scene.lights.push_back(CLight(Vec3(0, 1, 1), Vec3(100, 100, 100)));
 
-	Scene.spheres.push_back(CSphere(Vec3(1, 0, 10), 1.0f, Vec3(0, 0, 255)));
+	Scene.objects.push_back(std::make_unique<CSphere>(Vec3(1, 0, 10), 1.0f, Vec3(0, 0, 255)));
 
-	Scene.triangles.push_back(CTriangle(Vec3(-1, 3, 10), Vec3(4, 3, 15), Vec3(-1, 0, 10), Vec3(0, 255, 0)));
-
-	Scene.planes.push_back(CPlane(Vec3(0 , 0, 30), Vec3(0 , 1, -1), Vec3(255,0,0)));
+	Scene.objects.push_back(std::make_unique<CTriangle>(Vec3(-1, 3, 10), Vec3(4, 3, 15), Vec3(-1, 0, 10), Vec3(0, 255, 0)));
+	
+	Scene.objects.push_back(std::make_unique<CPlane>(Vec3(0, 0, 30), Vec3(0, 1, -1), Vec3(255, 0, 0)));
 }
 
 //Renders a scene and puts result in Scene.pixels
@@ -44,28 +43,32 @@ void CRayTracer::RenderScene(void)
 			int hitIndex = -1;
 			CObjectTypes hitType = CObjectTypes::none;
 
-			for (auto it = Scene.spheres.begin(); it != Scene.spheres.end(); ++it)
+			bool rayHit = false;
+
+			for (auto it = Scene.objects.begin(); it != Scene.objects.end(); ++it)
 			{
-				if (TestSphereIntersection(ray, *it) == true)
+				bool rayHit = false;
+
+				if (it->get()->type == CObjectTypes::sphere)
 				{
-					hitIndex = it - Scene.spheres.begin();
-					hitType = CObjectTypes::sphere;
+					CSphere sphere = dynamic_cast<CSphere&>(*it->get());
+					rayHit = sphere.TestIntersection(ray);
 				}
-			}
-			for (auto it = Scene.triangles.begin(); it != Scene.triangles.end(); ++it)
-			{
-				if (TestTriangleIntersection(ray, *it) == true)
+				else if (it->get()->type == CObjectTypes::triangle)
 				{
-					hitIndex = it - Scene.triangles.begin();
-					hitType = CObjectTypes::triangle;
+					CTriangle triangle = dynamic_cast<CTriangle&>(*it->get());
+					rayHit = triangle.TestIntersection(ray);
 				}
-			}
-			for (auto it = Scene.planes.begin(); it != Scene.planes.end(); ++it)
-			{
-				if (TestPlaneIntersection(ray, *it) == true)
+				else if (it->get()->type == CObjectTypes::plane)
 				{
-					hitIndex = it - Scene.planes.begin();
-					hitType = CObjectTypes::plane;
+					CPlane plane = dynamic_cast<CPlane&>(*it->get());
+					rayHit = plane.TestIntersection(ray);
+				}
+
+				if (rayHit == true)
+				{
+					hitIndex = it - Scene.objects.begin();
+					hitType = it->get()->type;
 				}
 			}
 
@@ -90,9 +93,7 @@ void CRayTracer::RenderScene(void)
 //Clears all objects from scene
 void CRayTracer::ClearScene(void)
 {
-	Scene.spheres.clear();
-	Scene.triangles.clear();
-	Scene.planes.clear();
+	Scene.objects.clear();
 	Scene.lights.clear();
 }
 
@@ -102,151 +103,85 @@ Vec3 CRayTracer::ComputePixelColor(CObjectTypes hitType, int hitIndex, Vec3 hitP
 	Vec3 lightRayDirection = light.position - hitPoint;
 	float backLength = lightRayDirection.Len();
 	lightRayDirection.Normalize();
-	CRay backRay = CRay(hitPoint, lightRayDirection,backLength);
+	CRay backRay = CRay(hitPoint, lightRayDirection, backLength);
 
 	Vec3 normal = Vec3(0, 0, 0);
 	Vec3 color = Vec3(0, 0, 0);
-	
 
-	if (IsOccluded(backRay, hitType, hitIndex)) return color;
-	
+	//Shadow casting
+	//***************
+	if (IsOccluded(backRay, hitIndex)) return color;
+	//***************
 
 	if (hitType == CObjectTypes::sphere)
 	{
-		normal = Scene.spheres[hitIndex].GetNormal(hitPoint);
+		CSphere sphere = dynamic_cast<CSphere&>(*Scene.objects[hitIndex]);
+
+		normal = sphere.GetNormal(hitPoint);
 		normal.Normalize();
 		float d = Dot(normal, lightRayDirection);
 		if (d < 0.0f) d = 0.0f;
 
-		color += Scene.spheres[hitIndex].color * d;
+		color += sphere.color * d;
 		color += light.color * d * L_INTENSITY;
 	}
 	else if (hitType == CObjectTypes::triangle)
 	{
-		normal = Scene.triangles[hitIndex].GetNormal();
+		CTriangle triangle = dynamic_cast<CTriangle&>(*Scene.objects[hitIndex]);
+
+		normal = triangle.GetNormal(Vec3(0,0,0));
 		normal.Normalize();
 		float d = Dot(normal, lightRayDirection);
 		if (d < 0.0f) d = 0.0f;
 
-		color += Scene.triangles[hitIndex].color * d;
+		color += triangle.color * d;
 		color += light.color * d * L_INTENSITY;
 	}
 	else if (hitType == CObjectTypes::plane)
 	{
-		normal = Scene.planes[hitIndex].normal;
+		CPlane plane = dynamic_cast<CPlane&>(*Scene.objects[hitIndex]);
+
+		normal = plane.GetNormal(Vec3(0, 0, 0));
 		normal.Normalize();
 		float d = Dot(normal, lightRayDirection);
 		if (d < 0.0f) d = 0.0f;
 
-		color += Scene.planes[hitIndex].color * d;
+		color += plane.color * d;
 		color += light.color * d * L_INTENSITY;
 	}
-
 	return color;
 }
 
-//Tests if the ray hits the sphere
-bool CRayTracer::TestSphereIntersection(CRay& ray, CSphere& sphere)
-{
-	Vec3 originToSphere = sphere.center - ray.origin;
-	float projection = Dot(originToSphere, ray.direction);
-	Vec3 distanceVector = originToSphere - ray.direction * projection;
-	float distanceSq = Dot(distanceVector, distanceVector);
-	float radiusSq = sphere.radius * sphere.radius;
-
-	//compare distance of the closest point on ray with radius of sphere
-	if (distanceSq > radiusSq) return false;
-
-	float newLength = projection - sqrtf(radiusSq - distanceSq);
-	if ((newLength < ray.length) && (newLength > 0.0f))
-	{
-		ray.length = newLength;
-		return true;
-	}
-	return false;
-}
-
-//Tests if the ray hits the triangle
-bool CRayTracer::TestTriangleIntersection(CRay& ray, CTriangle& triangle)
-{
-	Vec3 p0p1 = triangle.p1 - triangle.p0;
-	Vec3 p0p2 = triangle.p2 - triangle.p0;
-	Vec3 pvec = Cross(ray.direction,p0p2);
-	float det = Dot(pvec, p0p1);
-
-	// ray and triangle are parallel if det is close to 0
-	if (fabs(det) < EPSILON) return false;
-	
-	float invDet = 1 / det;
-
-	Vec3 tvec = ray.origin - triangle.p0;
-	float u = Dot(tvec, pvec) * invDet;
-	if (u < 0 || u > 1) return false;
-
-	Vec3 qvec = Cross(tvec, p0p1);
-	float v = Dot(ray.direction, qvec) * invDet;
-	if (v < 0 || u + v > 1) return false;
-
-	float newLength = Dot(qvec, p0p2) * invDet;
-
-	if (newLength < ray.length && (newLength > 0.0f))
-	{
-		ray.length = newLength;
-		return true;
-	}
-
-	return false;
-}
-
-//Test if the ray hits the plane
-bool CRayTracer::TestPlaneIntersection(CRay& ray, CPlane& plane)
-{
-	float det = Dot(plane.normal, ray.direction);
-
-	if (fabs(det) < EPSILON) return false;
-
-	Vec3 distance = plane.point - ray.origin;
-	float newLength = Dot(distance, plane.normal) / det;
-
-	if (newLength < 0.0f) return false;
-
-	if (newLength < ray.length)
-	{
-		ray.length = newLength;
-		return true;
-	}
-
-	return false;
-}
-
 //Tests if the hitted point is occluded by another object (shadow casting)
-bool CRayTracer::IsOccluded(CRay& ray, CObjectTypes hitType, int hitIndex)
+bool CRayTracer::IsOccluded(CRay& ray, int hitIndex)
 {
-	for (auto it = Scene.spheres.begin(); it != Scene.spheres.end(); ++it)
+	for (auto it = Scene.objects.begin(); it != Scene.objects.end(); ++it)
 	{
-		if ((hitType == CObjectTypes::sphere) && (hitIndex == (it - Scene.spheres.begin()))) return false;
+		if (hitIndex == (it - Scene.objects.begin())) return false;
 
-		if (TestSphereIntersection(ray, *it) == true)
+		if (it->get()->type == CObjectTypes::sphere)
 		{
-			return true;
+			CSphere sphere = dynamic_cast<CSphere&>(*it->get());
+			if (sphere.TestIntersection(ray) == true)
+			{
+				return true;
+			}
 		}
-	}
-	for (auto it = Scene.triangles.begin(); it != Scene.triangles.end(); ++it)
-	{
-		if ((hitType == CObjectTypes::triangle) && (hitIndex == (it - Scene.triangles.begin()))) return false;
-
-		if (TestTriangleIntersection(ray, *it) == true)
+		else if (it->get()->type == CObjectTypes::triangle)
 		{
-			return true;
+			CTriangle triangle = dynamic_cast<CTriangle&>(*it->get());
+			if (triangle.TestIntersection(ray) == true)
+			{
+				return true;
+			}
 		}
-	}
-	for (auto it = Scene.planes.begin(); it != Scene.planes.end(); ++it)
-	{
-		if ((hitType == CObjectTypes::plane) && (hitIndex == (it - Scene.planes.begin()))) return false;
-
-		if (TestPlaneIntersection(ray, *it) == true)
+		else if (it->get()->type == CObjectTypes::plane)
 		{
-			return true;
+			CPlane plane = dynamic_cast<CPlane&>(*it->get());
+			if (plane.TestIntersection(ray) == true)
+			{
+				return true;
+			}
 		}
 	}
 	return false;

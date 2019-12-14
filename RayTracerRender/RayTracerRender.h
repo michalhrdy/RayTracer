@@ -1,6 +1,6 @@
 #pragma once
-#include "MyMath.h"
 #include "SceneObjects.h"
+#include "MyMath.h"
 
 
 #ifdef RENDERDLL
@@ -28,10 +28,10 @@ public:
 	void SetCameraUp(Vec3 up) { Scene.camUp = up; }
 	void SetCameraDirection(Vec3 direction) { Scene.camDirection = direction; }
 
-	void AddLight(Vec3 position, Vec3 color) { Scene.lights.push_back(CLight(position, color));}
-	void AddSphere(Vec3 center, float radius, Vec3 color) { Scene.spheres.push_back(CSphere(center, radius, color)); }
-	void AddTriangle(Vec3 p1, Vec3 p2, Vec3 p3, Vec3 color) { Scene.triangles.push_back(CTriangle(p1, p2, p3, color)); }
-	void AddPlane(Vec3 point, Vec3 normal, Vec3 color) { Scene.planes.push_back(CPlane(point, normal, color)); }
+	void AddLight(Vec3 position, Vec3 color) { Scene.lights.push_back(CLight(position, color)); }
+	void AddSphere(Vec3 center, float radius, Vec3 color) { Scene.objects.push_back(std::make_unique<CSphere>(center, radius, color)); }
+	void AddTriangle(Vec3 p1, Vec3 p2, Vec3 p3, Vec3 color) { Scene.objects.push_back(std::make_unique<CTriangle>(p1, p2, p3, color)); }
+	void AddPlane(Vec3 point, Vec3 normal, Vec3 color) { Scene.objects.push_back(std::make_unique<CPlane>(point, normal, color)); }
 
 	void RenderScene(void);
 	void ClearScene(void);
@@ -41,10 +41,6 @@ private:
 	CScene Scene;
 
 	Vec3 ComputePixelColor(CObjectTypes hitType, int index, Vec3 hitPoint, CLight light);
-
-	bool TestSphereIntersection(CRay& ray, CSphere& sphere);
-	bool TestTriangleIntersection(CRay& ray, CTriangle& triangle);
-	bool TestPlaneIntersection(CRay& ray, CPlane& plane);
-	bool IsOccluded(CRay& ray, CObjectTypes hitType, int hitIndex);
+	bool IsOccluded(CRay& ray, int hitIndex);
 };
 

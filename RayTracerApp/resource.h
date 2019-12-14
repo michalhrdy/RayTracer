@@ -17,6 +17,7 @@
 #define IDC_CAM_X                       1014
 #define IDC_LIGHT_X                     1015
 #define IDC_CAM_Y                       1016
+#define IDC_RENDER                      1016
 #define IDC_CAM_Z                       1017
 #define IDC_CAMDIR_X                    1018
 #define IDC_CAMDIR_Z                    1019
@@ -62,7 +63,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        133
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1014
+#define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

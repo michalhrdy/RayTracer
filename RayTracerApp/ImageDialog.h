@@ -10,6 +10,8 @@ class ImageDialog : public CDialogEx
 public:
 	ImageDialog(CWnd* pParent = nullptr);   // standard constructor
 	virtual ~ImageDialog();
+	short int rotation=0;
+	CString txtTable[3];
 
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
@@ -20,4 +22,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 };

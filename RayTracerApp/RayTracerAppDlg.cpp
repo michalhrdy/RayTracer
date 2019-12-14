@@ -8,13 +8,6 @@
 #include "RayTracerAppDlg.h"
 #include "afxdialogex.h"
 
-#include <windows.h>
-#include <gdiplus.h>
-#pragma comment (lib,"Gdiplus.lib")
-using namespace Gdiplus;
-#include <stdexcept>
-using std::runtime_error;
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -126,7 +119,7 @@ BOOL CRayTracerAppDlg::OnInitDialog()
 	SetDlgItemInt(IDC_PLANE_G, 0);
 	SetDlgItemInt(IDC_PLANE_B, 0);
 
-	OnBnClickedOk();
+	//OnBnClickedOk();
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -172,14 +165,40 @@ void CRayTracerAppDlg::OnBnClickedCancel()
 	CDialogEx::OnCancel();
 }
 
-
-void CRayTracerAppDlg::OnBnClickedOk()
+UINT OnRender(LPVOID pParam)//CRayTracerAppDlg* window)
 {
+	CRayTracerAppDlg* window = (CRayTracerAppDlg*)pParam;
+
+	//Scene rendering
+	window->RayTracer.RenderScene();
+
+	window->FillImgDialog();
+
+	return 0;
+}
+
+void CRayTracerAppDlg::CreateImgDialog()
+{
+	myImageWindow.DestroyWindow();
+	myImageWindow.Create(IDD_DIALOG1, this);
+	myImageWindow.SetWindowPos(this, 0, 0, RayTracer.GetCanvasWidth(), RayTracer.GetCanvasHeight(), NULL);
+	myImageWindow.ShowWindow(SW_SHOW);
+
+	CStatic* txtCtrl = (CStatic*)myImageWindow.GetDlgItem(IDC_RENDER);
+	txtCtrl->ShowWindow(SW_SHOW);
+
+	myImageWindow.SetTimer(1, 1000, NULL);
+}
+
+void CRayTracerAppDlg::FillImgDialog()
+{
+	myImageWindow.KillTimer(1);
+	CStatic* txtCtrl = (CStatic*)myImageWindow.GetDlgItem(IDC_RENDER);
+	txtCtrl->ShowWindow(SW_HIDE);
+
 	//Initialization
 	GdiplusInit gdiplusinit;
 
-	//Scene rendering
-	RayTracer.RenderScene();
 	Bitmap myBitmap(RayTracer.GetCanvasWidth(), RayTracer.GetCanvasHeight(), PixelFormat32bppARGB);
 
 	for (int y = 0; y < RayTracer.GetCanvasHeight(); y++)
@@ -193,11 +212,6 @@ void CRayTracerAppDlg::OnBnClickedOk()
 		}
 	}
 
-	myImageWindow.DestroyWindow();
-	myImageWindow.Create(IDD_DIALOG1,this);
-	myImageWindow.SetWindowPos(this, 0, 0, RayTracer.GetCanvasWidth(), RayTracer.GetCanvasHeight(), NULL);
-	myImageWindow.ShowWindow(SW_SHOW);
-
 	//Drawing bitmap into window
 	RECT rect;
 	HBITMAP bmp;
@@ -210,11 +224,20 @@ void CRayTracerAppDlg::OnBnClickedOk()
 	DeleteDC(hdc);
 }
 
+void CRayTracerAppDlg::OnBnClickedOk()
+{	
+	CreateImgDialog();
+	
+	CWinThread* T = AfxBeginThread(OnRender, this);
+
+	//::WaitForSingleObject(T->m_hThread, INFINITE);
+
+}
+
 
 void CRayTracerAppDlg::OnBnClickedSetcanvas()
 {
 	RayTracer.SetCanvasSize(GetDlgItemInt(IDC_CANVAS_W), GetDlgItemInt(IDC_CANVAS_H));
-	OnBnClickedOk();
 }
 
 
@@ -225,14 +248,12 @@ void CRayTracerAppDlg::OnBnClickedSetcamera()
 
 	RayTracer.SetCameraPosition(pos);
 	RayTracer.SetCameraUp(up);
-	OnBnClickedOk();
 }
 
 
 void CRayTracerAppDlg::OnBnClickedClean()
 {
 	RayTracer.ClearScene();
-	OnBnClickedOk();
 }
 
 
@@ -242,7 +263,6 @@ void CRayTracerAppDlg::OnBnClickedAddlight()
 	Vec3 col = Vec3(float((int)GetDlgItemInt(IDC_LIGHT_R)), float((int)GetDlgItemInt(IDC_LIGHT_G)), float((int)GetDlgItemInt(IDC_LIGHT_B)));
 
 	RayTracer.AddLight(pos, col);
-	OnBnClickedOk();
 }
 
 
@@ -253,7 +273,6 @@ void CRayTracerAppDlg::OnBnClickedAddsphere()
 	float rad = (float)((int)GetDlgItemInt(IDC_SPHERE_RADIUS));
 
 	RayTracer.AddSphere(pos, rad, col);
-	OnBnClickedOk();
 }
 
 
@@ -265,7 +284,6 @@ void CRayTracerAppDlg::OnBnClickedAddtriangle()
 	Vec3 col = Vec3(float((int)GetDlgItemInt(IDC_TRIANGLE_R)), float((int)GetDlgItemInt(IDC_TRIANGLE_G)), float((int)GetDlgItemInt(IDC_TRIANGLE_B)));
 
 	RayTracer.AddTriangle(p1, p2, p3, col);
-	OnBnClickedOk();
 }
 
 
@@ -276,5 +294,4 @@ void CRayTracerAppDlg::OnBnClickedAddplane()
 	Vec3 col = Vec3(float((int)GetDlgItemInt(IDC_PLANE_R)), float((int)GetDlgItemInt(IDC_PLANE_G)), float((int)GetDlgItemInt(IDC_PLANE_B)));
 
 	RayTracer.AddPlane(pos, nor, col);
-	OnBnClickedOk();
 }
