@@ -28,6 +28,9 @@ public:
 	void CreateImgDialog();
 	void FillImgDialog();
 
+	void LockAll();
+	void UnlockAll();
+
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_RAYTRACERAPP_DIALOG };

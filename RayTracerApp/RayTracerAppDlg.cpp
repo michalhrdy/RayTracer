@@ -179,6 +179,8 @@ UINT OnRender(LPVOID pParam)//CRayTracerAppDlg* window)
 
 void CRayTracerAppDlg::CreateImgDialog()
 {
+	LockAll();
+
 	myImageWindow.DestroyWindow();
 	myImageWindow.Create(IDD_DIALOG1, this);
 	myImageWindow.SetWindowPos(this, 0, 0, RayTracer.GetCanvasWidth(), RayTracer.GetCanvasHeight(), NULL);
@@ -222,6 +224,62 @@ void CRayTracerAppDlg::FillImgDialog()
 	FillRect(hdc, &rect, brush);
 	DeleteObject(brush);
 	DeleteDC(hdc);
+
+	UnlockAll();
+}
+
+void CRayTracerAppDlg::LockAll()
+{
+	CButton* pButton = (CButton*)this->GetDlgItem(IDSETCAMERA);
+	pButton->EnableWindow(FALSE);
+	
+	pButton = (CButton*)this->GetDlgItem(IDSETCANVAS);
+	pButton->EnableWindow(FALSE);
+
+	pButton = (CButton*)this->GetDlgItem(IDADDLIGHT);
+	pButton->EnableWindow(FALSE);
+
+	pButton = (CButton*)this->GetDlgItem(IDADDSPHERE);
+	pButton->EnableWindow(FALSE);
+
+	pButton = (CButton*)this->GetDlgItem(IDADDTRIANGLE);
+	pButton->EnableWindow(FALSE);
+	
+	pButton = (CButton*)this->GetDlgItem(IDADDPLANE);
+	pButton->EnableWindow(FALSE);
+
+	pButton = (CButton*)this->GetDlgItem(IDOK);
+	pButton->EnableWindow(FALSE);
+
+	pButton = (CButton*)this->GetDlgItem(IDCLEAN);
+	pButton->EnableWindow(FALSE);
+}
+
+void CRayTracerAppDlg::UnlockAll()
+{
+	CButton* pButton = (CButton*)this->GetDlgItem(IDSETCAMERA);
+	pButton->EnableWindow(TRUE);
+
+	pButton = (CButton*)this->GetDlgItem(IDSETCANVAS);
+	pButton->EnableWindow(TRUE);
+
+	pButton = (CButton*)this->GetDlgItem(IDADDLIGHT);
+	pButton->EnableWindow(TRUE);
+
+	pButton = (CButton*)this->GetDlgItem(IDADDSPHERE);
+	pButton->EnableWindow(TRUE);
+
+	pButton = (CButton*)this->GetDlgItem(IDADDTRIANGLE);
+	pButton->EnableWindow(TRUE);
+
+	pButton = (CButton*)this->GetDlgItem(IDADDPLANE);
+	pButton->EnableWindow(TRUE);
+
+	pButton = (CButton*)this->GetDlgItem(IDOK);
+	pButton->EnableWindow(TRUE);
+
+	pButton = (CButton*)this->GetDlgItem(IDCLEAN);
+	pButton->EnableWindow(TRUE);
 }
 
 void CRayTracerAppDlg::OnBnClickedOk()
